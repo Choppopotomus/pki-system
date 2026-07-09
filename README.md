@@ -64,6 +64,10 @@ The fix was a hybrid that should have been the starting point: local models (Oll
 **MCP server:** TypeScript, @modelcontextprotocol/sdk
 **Scheduling:** macOS launchd (20+ plists)
 
+## What It Actually Does for Me
+
+The outcome I care about most: it reminds me of commitments I've made and holds me to them. I told myself I'd follow up on a job application in two weeks — it flags it. I said I'd check a lab result after an appointment — it prompts me. That accountability is what makes the system useful, not the automation or the AI.
+
 ## What Surprised Me
 
 Building for a single user sounds easier. You know exactly what the user needs — you are the user. No stakeholders to negotiate with, no PM to convince.
