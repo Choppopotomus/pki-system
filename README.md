@@ -1,100 +1,77 @@
 # Personal Knowledge Infrastructure (PKI)
 
-A multi-agent AI system that captures, classifies, stores, and proactively surfaces information across 10+ life domains. Designed and built for one user — me — because no existing tool could handle the cross-domain complexity of managing health, career, finances, benefits, projects, and household in a single system.
+Last year I hit a wall managing health, career, finances, benefits, projects, and household across a dozen disconnected tools. No off-the-shelf product handled the cross-domain complexity — because no product manager gets paid to build for a market of one. So I built one.
 
-**I am not a software engineer.** My background is Navy nuclear power, manufacturing maintenance, and program management. I defined the requirements, made the architecture decisions, and directed the implementation. The system was built iteratively across 7 phases using Claude Code.
+This is a multi-agent AI system that captures, classifies, stores, and proactively surfaces information across 10+ life domains. It runs 20+ scheduled agents, routes work between local and cloud LLMs depending on sensitivity and cost, stores everything in Postgres, and surfaces what matters through a dashboard.
+
+**I'm not a software engineer.** My background is Navy nuclear power, manufacturing maintenance, and program management. I defined the requirements, made the architecture decisions, and directed the implementation across 7 phases.
 
 ---
 
-## The Problem
+## One Decision I Got Wrong First
 
-Information fragmentation across life domains creates cognitive overhead that compounds. A doctor's appointment needs to update your calendar, trigger a benefits portal check, log a journal entry, and adjust your supplement schedule. No off-the-shelf tool orchestrates that — because no product manager has ever been paid to build for a market of one.
+The initial version sent everything to Claude's API — classification, personal journal analysis, high-level reasoning, all of it. It worked. But I was sending health records and journal entries to a cloud I didn't control, and the API bill climbed fast.
 
-So I built it.
-
-## Architecture Overview
-
-```
-┌─────────────────────────────────────────┐
-│           20+ Autonomous Agents          │
-│  (launchd schedules, 2x/day to weekly)   │
-└─────┬───────┬───────┬───────┬────────────┘
-      │       │       │       │
-      ▼       ▼       ▼       ▼
-┌─────────────────────────────────────────┐
-│            MCP Protocol Layer            │
-│      57 tools across 6 domains           │
-└────────────────┬────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────┐
-│       Postgres (Neon, 23 schemas)        │
-│  Structured knowledge SSOT, 182+ tables  │
-│  pgvector embeddings, HNSW indexes      │
-└─────┬───────┬───────┬───────┬────────────┘
-      │       │       │       │
-      ▼       ▼       ▼       ▼
-┌─────────────────────────────────────────┐
-│         LLM Routing Layer                │
-│  Cloud (Anthropic) for complex reasoning │
-│  Local (Ollama) for routine classification│
-│  Batch API for cost-sensitive inference  │
-└────────────────┬────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────┐
-│      Cloudflare Workers Dashboard       │
-│  OAuth auth, private + shop views        │
-│  Real-time data from Postgres            │
-└─────────────────────────────────────────┘
-```
-
-## Key Design Decisions
+The fix was a hybrid that should have been the starting point: local models (Ollama — Llama, Qwen variants) handle anything involving PII or repetitive classification. Claude handles complex reasoning — strategy, synthesis, council deliberations. The local models are less capable and need more careful prompting. The wins: health data never leaves my machine, and the API bill dropped 70%.
 
 | Decision | Chosen | Rejected |
 |----------|--------|----------|
+| PII/compliance data routing | Local models (on-device) | Cloud API (initial — reversed) |
+| Complex reasoning | Cloud LLM (Anthropic Claude) | Local model (too unreliable) |
 | Data store | Postgres (Neon) | File-based vault (Obsidian) |
-| Hosting | Cloud (Neon) | Self-hosted (Home server) |
-| Tool standard | MCP Protocol | Custom API |
-| Dashboard | Cloudflare Workers + Next.js | Static site |
-| LLM routing | Hybrid (cloud + local) | Cloud-only or local-only |
-| Auth | OAuth (Google) | Password, passkey (deferred) |
-
-## What Ships
-
-- **Calendar sync**: Apple EventKit → Postgres, 2x/day
-- **Job alert monitor**: IMAP inbox scanning + LLM classification + fit scoring, 2x/day
-- **Email classification**: Employer/recruiter email routing, every 4 hours
-- **Health data sync**: FHIR record retrieval from health systems (on-demand)
-- **VA benefits sync**: VA.gov claims + disability ratings + appeals status (on-demand)
-- **CoS Curation**: Daily briefing agent that surfaces what needs attention
-- **Life Advisory Council**: 8 persona-driven AI advisors that deliberate on decisions
-- **Forgotten thread trawler**: Weekly scan for commitments that fell through the cracks
-- **Model researcher**: Weekly evaluation of local LLM performance against task anchors
-- **Witness**: Restricted-tier journal synthesis, local LLM only, weekly
-- **Deadline scanner**: Daily check for upcoming dates and expirations
-
-## Tech Stack
-
-**Database**: Neon Postgres 17, 23 schemas, pgvector, HNSW indexes
-**Agent Runtime**: Claude Code (complex agents) + standalone TypeScript scripts (high-volume)
-**LLM Providers**: Anthropic API (Sonnet, Haiku), Ollama local (Llama, Qwen variants)
-**RAG Pipeline**: bge-m3 embeddings, Cohere reranker, hybrid cloud/local retrieval
-**Dashboard**: Next.js + Cloudflare Workers via OpenNext, Auth.js v5 + Google OAuth
-**MCP Server**: TypeScript, @modelcontextprotocol/sdk, @neondatabase/serverless
-**Scheduling**: macOS launchd (20+ plists)
-**Embeddings**: pgvector, 1024-dimensional, across 9 short-prose table families
-
-## Product Lessons Learned
-
-Building for a single user sounds easier than building for a market. You know exactly what the user needs — you are the user. There is no one to convince and no stakeholder to negotiate with.
-
-What I did not expect: that is also the hardest part.
-
-With no other user to challenge your assumptions, you build things you never use and optimize for scenarios that never happen. The most useful addition to the system was the Life Advisory Council — eight AI personas (CFO, CTO, health advisor, legal counsel, coach, and others) that debate decisions and surface disagreements. It is a way of manufacturing the adversarial perspective that a product team provides naturally.
-
-The broader lesson: when AI lowers the cost of building software to nearly zero, the bottleneck shifts from engineering capacity to product thinking. Anyone who can define what needs to be built can now direct its construction. That changes who builds products — and which problems get solved.
+| Hosting | Cloud (Neon) | Self-hosted (deferred) |
+| Agent tools | MCP Protocol (standard) | Custom API |
+| Dashboard | Cloudflare Workers | Static site |
+| Auth | OAuth (Google) | Password (deferred) |
 
 ---
 
-*Built by Caleb Hopper.*
+## Architecture
+
+```
+20+ Autonomous Agents ──► MCP Tools (57) ──► Postgres (23 schemas)
+                                                    │
+                                          LLM Routing Layer
+                                          ┌─────────┬─────────┐
+                                          │  Local   │  Cloud  │
+                                          │ (PII ✓)  │ (Smart) │
+                                          └─────────┴─────────┘
+                                                    │
+                                          Cloudflare Dashboard
+```
+
+## What Ships
+
+- **Calendar sync** — Apple EventKit → Postgres, 2x/day
+- **Job alert monitor** — IMAP inbox → LLM classifies → scores against rubric
+- **Email classification** — Employer/recruiter routing, every 4 hours
+- **Health data sync** — FHIR records from health systems (on-demand)
+- **VA benefits sync** — Claim status, ratings, appeals (on-demand)
+- **CoS Curation** — Daily briefing: what needs attention today
+- **Life Advisory Council** — 8 AI personas that debate decisions
+- **Forgotten thread trawler** — Weekly scan for dropped commitments
+- **Model researcher** — Weekly local LLM performance eval
+- **Witness** — Journal synthesis, local LLM only, weekly
+- **Deadline scanner** — Daily check for upcoming dates
+
+## Tech Stack
+
+**Database:** Neon Postgres 17, 23 schemas, pgvector, HNSW indexes
+**Agent runtime:** Claude Code (complex) + TypeScript scripts (high-volume)
+**LLM providers:** Anthropic API (Sonnet, Haiku), Ollama local (Llama, Qwen)
+**RAG:** bge-m3 embeddings, Cohere reranker, hybrid cloud/local retrieval
+**Dashboard:** Next.js + Cloudflare Workers, Auth.js v5 + Google OAuth
+**MCP server:** TypeScript, @modelcontextprotocol/sdk
+**Scheduling:** macOS launchd (20+ plists)
+
+## What Surprised Me
+
+Building for a single user sounds easier. You know exactly what the user needs — you are the user. No stakeholders to negotiate with, no PM to convince.
+
+What I didn't expect: that's also the hardest part. No one tells you you're wrong. I built things I never used and optimized for scenarios that never happened. The Life Advisory Council — eight AI personas that debate decisions — was my response to that. It's a way of manufacturing the adversarial perspective a product team naturally provides. It turned out to be the most useful part of the system.
+
+The broader lesson: when AI lowers the cost of building software, the bottleneck shifts from engineering to product thinking. Anyone who can define what needs to be built can now direct its construction. That changes who gets to build products.
+
+---
+
+*If this resonates, I'd welcome a conversation: chop.ops@proton.me. Built by Caleb Hopper.*
