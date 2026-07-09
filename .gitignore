@@ -1,0 +1,14 @@
+# Credentials
+.env
+.env.*
+credentials.*
+tokens.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+**/secrets/**
+*.pem
+*.key
