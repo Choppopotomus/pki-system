@@ -97,4 +97,4 @@ The broader lesson: when AI lowers the cost of building software to nearly zero,
 
 ---
 
-*Built by Caleb Hopper. [LinkedIn article]()*
+*Built by Caleb Hopper.*
