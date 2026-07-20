@@ -14,21 +14,21 @@ The initial version sent everything to Claude's API — classification, personal
 
 The fix was a hybrid that should have been the starting point: local models (Ollama — Llama, Qwen variants) handle anything involving PII or repetitive classification. Claude handles complex reasoning — strategy, synthesis, council deliberations. The local models are less capable and need more careful prompting. The wins: health data never leaves my machine, and the API bill dropped 70%.
 
-| Decision | Chosen | Rejected |
-|----------|--------|----------|
-| PII/compliance data routing | Local models (on-device) | Cloud API (initial — reversed) |
-| Complex reasoning | Cloud LLM (Anthropic Claude) | Local model (too unreliable) |
-| Data store | Postgres (Neon) | File-based vault (Obsidian) |
-| Hosting | Cloud (Neon) | Self-hosted (deferred) |
-| Agent tools | MCP Protocol (standard) | Custom API |
-| Dashboard | Cloudflare Workers | Static site |
-| Auth | OAuth (Google) | Password (deferred) |
+| Decision                    | Chosen                       | Rejected                       |
+|-----------------------------|------------------------------|--------------------------------|
+| PII/compliance data routing | Local models (on-device)     | Cloud API (initial — reversed) |
+| Complex reasoning           | Cloud LLM (Anthropic Claude) | Local model (too unreliable)   |
+| Data store                  | Postgres (Neon)              | File-based vault (Obsidian)    |
+| Hosting                     | Cloud (Neon)                 | Self-hosted (deferred)         |
+| Agent tools                 | MCP Protocol (standard)      | Custom API                     |
+| Dashboard                   | Cloudflare Workers           | Static site                    |
+| Auth                        | OAuth (Google)               | Password (deferred)            |
 
----
+
 
 ## Architecture
 
-```
+
 20+ Autonomous Agents ──► MCP Tools (57) ──► Postgres (23 schemas)
                                                     │
                                           LLM Routing Layer
@@ -38,7 +38,7 @@ The fix was a hybrid that should have been the starting point: local models (Oll
                                           └─────────┴─────────┘
                                                     │
                                           Cloudflare Dashboard
-```
+
 
 ## What Ships
 
